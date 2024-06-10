@@ -27,6 +27,7 @@ public class CreateEvent : MonoBehaviour
 
     void Update()
     {
+        eventSpawner = FindAnyObjectByType<RealTimeEventSpawner>();
         if (isCreatingEvent)
         {
             HandleMapClick();
@@ -64,7 +65,10 @@ public class CreateEvent : MonoBehaviour
             {
                 Vector3 worldPosition = ray.GetPoint(distance);
                 Debug.Log("World Position: " + worldPosition);
-                eventSpawner.CreateEventServerRpc(worldPosition);
+
+                // Solicitar al servidor crear el evento
+                eventSpawner.RequestCreateEvent(worldPosition);
+
                 OnExitButtonClicked(); // Salir del modo de creación de eventos después de crear el evento
             }
         }
@@ -85,7 +89,10 @@ public class CreateEvent : MonoBehaviour
                 {
                     Vector3 worldPosition = ray.GetPoint(distance);
                     Debug.Log("World Position: " + worldPosition);
-                    eventSpawner.CreateEventServerRpc(worldPosition);
+
+                    // Solicitar al servidor crear el evento
+                    eventSpawner.RequestCreateEvent(worldPosition);
+
                     OnExitButtonClicked(); // Salir del modo de creación de eventos después de crear el evento
                 }
             }
