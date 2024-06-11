@@ -2,6 +2,7 @@ using UnityEngine;
 using Unity.Netcode;
 using UnityEngine.SceneManagement;
 using System.Collections.Generic;
+using Mapbox.Utils;
 
 public class RealTimeEventSpawner : NetworkBehaviour
 {
@@ -9,7 +10,8 @@ public class RealTimeEventSpawner : NetworkBehaviour
     GameObject eventPrefab; // Prefab del evento a instanciar
 
     public List<GameObject> spawnedEvents = new List<GameObject>();
-    public List<Vector3> eventPositions = new List<Vector3>();
+    public List<Vector3> eventPositions = new List<Vector3>(); 
+    public List<Vector2d> geoPositions = new List<Vector2d>();
 
     public static RealTimeEventSpawner Instance { get; private set; }
 
@@ -48,18 +50,18 @@ public class RealTimeEventSpawner : NetworkBehaviour
     }
 
     // Método llamado por los clientes para solicitar la creación de un evento
-    public void RequestCreateEvent(Vector3 worldPosition)
+    public void RequestCreateEvent(Vector3 worldPosition, Vector2d geoPosition)
     {
         if (IsClient)
         {
             // El cliente solicita la creación del evento al servidor
-            CreateEventServerRpc(worldPosition);
+            CreateEventServerRpc(worldPosition, geoPosition);
         }
     }
 
     // ServerRpc para manejar la solicitud de creación de evento desde el cliente
     [ServerRpc(RequireOwnership = false)]
-    public void CreateEventServerRpc(Vector3 worldPosition, ServerRpcParams rpcParams = default)
+    public void CreateEventServerRpc(Vector3 worldPosition, Vector2d geoPosition, ServerRpcParams rpcParams = default)
     {
         if (IsServer)
         {
@@ -68,16 +70,17 @@ public class RealTimeEventSpawner : NetworkBehaviour
             {
                 // Añadir la ubicación del evento a la lista
                 eventPositions.Add(worldPosition);
+                geoPositions.Add(geoPosition);
                 // Crear el evento en el servidor
-                CreateEvent(worldPosition);
+                CreateEvent(worldPosition, geoPosition);
                 // Notificar a todos los clientes para crear el evento en sus mapas
-                CreateEventClientRpc(worldPosition);
+                CreateEventClientRpc(worldPosition, geoPosition);
             }
         }
     }
 
     // Método que crea el evento en el servidor
-    void CreateEvent(Vector3 worldPosition)
+    void CreateEvent(Vector3 worldPosition, Vector2d geoPosition)
     {
         Debug.Log("Creating event at position: " + worldPosition);
         worldPosition.y = 5; // Establecer la Y en 5
@@ -89,6 +92,13 @@ public class RealTimeEventSpawner : NetworkBehaviour
             networkObject.Spawn();
         }
 
+        // Asignar coordenadas geográficas al EventController del evento
+        EventController eventController = eventInstance.GetComponent<EventController>();
+        if (eventController != null)
+        {
+            eventController.eventLoc = geoPosition;
+        }
+
         spawnedEvents.Add(eventInstance);
 
         // Asegurarse de que la posición Y no cambie después de la instanciación
@@ -97,24 +107,32 @@ public class RealTimeEventSpawner : NetworkBehaviour
 
     // Método llamado por el servidor para notificar a todos los clientes de la creación del evento
     [ClientRpc]
-    void CreateEventClientRpc(Vector3 worldPosition)
+    void CreateEventClientRpc(Vector3 worldPosition, Vector2d geoPosition)
     {
         if (!IsServer)
         {
             // Solo los clientes ejecutan este código
-            CreateClientEvent(worldPosition);
+            CreateClientEvent(worldPosition, geoPosition);
         }
     }
 
     // Método que crea el evento en el cliente (sin NetworkObject)
-    void CreateClientEvent(Vector3 worldPosition)
-    {
+     void CreateClientEvent(Vector3 worldPosition, Vector2d geoPosition)
+     {
         Debug.Log("Creating client-side event at position: " + worldPosition);
         worldPosition.y = 5; // Establecer la Y en 5
         GameObject eventInstance = Instantiate(eventPrefab, worldPosition, Quaternion.identity);
+
+        // Asignar coordenadas geográficas al EventController del evento
+        EventController eventController = eventInstance.GetComponent<EventController>();
+        if (eventController != null)
+        {
+            eventController.eventLoc = geoPosition;
+        }
+
         spawnedEvents.Add(eventInstance);
         eventInstance.transform.position = new Vector3(worldPosition.x, 5, worldPosition.z);
-    }
+     }
 
     private void Update()
     {

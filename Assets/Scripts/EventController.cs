@@ -36,7 +36,7 @@ public class EventController : MonoBehaviour
     {
         playerLoc = GameObject.Find("Canvas").GetComponent<LocationStatus>();
         var currentPlayerLoc = new GeoCoordinatePortable.GeoCoordinate(playerLoc.GetLat(), playerLoc.GetLon());
-        var currentEventLoc = new GeoCoordinatePortable.GeoCoordinate(eventLoc[0], eventLoc[1]);
+        var currentEventLoc = new GeoCoordinatePortable.GeoCoordinate(eventLoc.x, eventLoc.y);
         var distance = currentPlayerLoc.GetDistanceTo(currentEventLoc);
         Debug.Log(distance);
 

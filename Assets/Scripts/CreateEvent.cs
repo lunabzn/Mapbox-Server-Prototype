@@ -3,6 +3,7 @@ using UnityEngine.UI;
 using Mapbox.Unity.Map;
 using UnityEngine.EventSystems;
 using System.Collections.Generic;
+using Mapbox.Utils;
 
 public class CreateEvent : MonoBehaviour
 {
@@ -66,8 +67,12 @@ public class CreateEvent : MonoBehaviour
                 Vector3 worldPosition = ray.GetPoint(distance);
                 Debug.Log("World Position: " + worldPosition);
 
+                // Convertir worldPosition a coordenadas geográficas (latitud y longitud)
+                Vector2d geoPosition = _map.WorldToGeoPosition(worldPosition);
+                Debug.Log("Geo Position: " + geoPosition);
+
                 // Solicitar al servidor crear el evento
-                eventSpawner.RequestCreateEvent(worldPosition);
+                eventSpawner.RequestCreateEvent(worldPosition, geoPosition);
 
                 OnExitButtonClicked(); // Salir del modo de creación de eventos después de crear el evento
             }
@@ -90,8 +95,11 @@ public class CreateEvent : MonoBehaviour
                     Vector3 worldPosition = ray.GetPoint(distance);
                     Debug.Log("World Position: " + worldPosition);
 
+                    Vector2d geoPosition = _map.WorldToGeoPosition(worldPosition);
+                    Debug.Log("Geo Position: " + geoPosition);
+
                     // Solicitar al servidor crear el evento
-                    eventSpawner.RequestCreateEvent(worldPosition);
+                    eventSpawner.RequestCreateEvent(worldPosition, geoPosition);
 
                     OnExitButtonClicked(); // Salir del modo de creación de eventos después de crear el evento
                 }

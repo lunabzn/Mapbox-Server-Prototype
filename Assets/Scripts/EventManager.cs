@@ -6,7 +6,7 @@ using UnityEngine.SceneManagement;
 
 public class EventManager : MonoBehaviour
 {
-    public int maxDist = 300;
+    public int maxDist = 100;
     void Start()
     {
         

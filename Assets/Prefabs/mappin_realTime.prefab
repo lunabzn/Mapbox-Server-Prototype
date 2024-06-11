@@ -60,6 +60,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: -7511558181221131132, guid: b9aae1c161cb07b4083dd8c458ff453a, type: 3}
+      propertyPath: m_Materials.Array.data[0]
+      value: 
+      objectReference: {fileID: 2100000, guid: 94304a29d9b48c741b4f9106f8a4e696, type: 2}
     - target: {fileID: 919132149155446097, guid: b9aae1c161cb07b4083dd8c458ff453a, type: 3}
       propertyPath: m_Name
       value: mappin_realTime

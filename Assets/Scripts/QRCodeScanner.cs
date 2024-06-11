@@ -5,6 +5,7 @@ using UnityEngine.UI;
 using ZXing;
 using TMPro;
 using System.Runtime.CompilerServices;
+using UnityEngine.Android;
 
 public class QRCodeScanner : MonoBehaviour
 {
@@ -19,7 +20,12 @@ public class QRCodeScanner : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        
+        if (!Permission.HasUserAuthorizedPermission(Permission.Camera))
+        {
+            Permission.RequestUserPermission(Permission.Camera);
+        }
+
+        SetUpCamera();
     }
 
     // Update is called once per frame
