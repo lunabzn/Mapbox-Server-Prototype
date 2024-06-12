@@ -13,6 +13,8 @@ public class EventController : MonoBehaviour
     public int eventID;
     UIManager uiManager;
     EventManager eventManager;
+    public bool isRealTime;
+
     void Start()
     {
         if (canvas == null)
@@ -40,9 +42,27 @@ public class EventController : MonoBehaviour
         var distance = currentPlayerLoc.GetDistanceTo(currentEventLoc);
         Debug.Log(distance);
 
-        //Debug.Log("click"); 
 
-        if (distance < eventManager.maxDist) { uiManager.DisplayPanel(eventID); }
-        if (distance > eventManager.maxDist) { uiManager.GetCloserPanel(); }
+        if (!isRealTime)
+        {       
+            if (distance < eventManager.maxDist) { uiManager.DisplayPanel(eventID); }
+            if (distance > eventManager.maxDist) { uiManager.GetCloserPanel(); }
+        } 
+        else if(isRealTime)
+        {
+            if (distance < eventManager.maxDist) 
+            { 
+                GameObject eventCanvas = transform.Find("EventCanvas").gameObject;
+                eventCanvas.SetActive(true);
+
+                if(eventCanvas!= null)
+                {
+                    GameObject infoPanel = eventCanvas.transform.Find("EventInfo").gameObject;
+                    infoPanel.SetActive(true);
+                }
+            }
+            if (distance > eventManager.maxDist) { uiManager.GetCloserPanel(); }
+        }        
+
     }
 }

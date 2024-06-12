@@ -20,7 +20,7 @@ public class ScoreDisplay : MonoBehaviour
         score = PlayerPrefs.GetInt("Score", 0);
 
         // Mostrar la puntuación en el texto
-        scoreText.text = "           " + score;
+        scoreText.text = "                    " + score;
 
         if (score == 10)
         {

@@ -162,7 +162,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   m_FontData:
-    m_Font: {fileID: 12800000, guid: e3265ab4bf004d28a9537516768c1c75, type: 3}
+    m_Font: {fileID: 12800000, guid: 854216e86b9dac1448ee8feae0ab1b5e, type: 3}
     m_FontSize: 92
     m_FontStyle: 0
     m_BestFit: 0
@@ -3532,6 +3532,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   eventPrefab: {fileID: 2264874379539733053, guid: 77a4a40a24569dd4a8480311e3261039, type: 3}
+  mainCanvas: {fileID: 1220223447}
   spawnedEvents: []
   eventPositions: []
   geoPositions: []
