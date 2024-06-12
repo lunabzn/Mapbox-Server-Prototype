@@ -1,21 +1,22 @@
-using System.Collections;
+using Mapbox.Unity.Location;
+using Mapbox.Utils;
 using System.Collections.Generic;
 using Unity.Netcode;
 using Unity.Netcode.Transports.UTP;
 using Unity.Services.Authentication;
 using Unity.Services.Core;
-using Unity.Services.Lobbies.Models;
 using Unity.Services.Lobbies;
+using Unity.Services.Lobbies.Models;
 using Unity.Services.Relay;
 using UnityEngine;
-using UnityEngine.UI;
 
 public class NetworkManagerUI : MonoBehaviour
 {
+    [SerializeField] private GameObject playerPrefab;
     public GameObject alert;
     public static NetworkManagerUI Instance { get; private set; }
 
-    private async void Awake()
+    private void Awake()
     {
         if (Instance != null && Instance != this)
         {
@@ -26,9 +27,13 @@ public class NetworkManagerUI : MonoBehaviour
         Instance = this;
         DontDestroyOnLoad(gameObject);
 
+        InitializeUnityServices();
+    }
+
+    private async void InitializeUnityServices()
+    {
         await UnityServices.InitializeAsync();
 
-        // Autenticar al jugador
         if (!AuthenticationService.Instance.IsSignedIn)
         {
             await AuthenticationService.Instance.SignInAnonymouslyAsync();
@@ -37,7 +42,7 @@ public class NetworkManagerUI : MonoBehaviour
 #if UNITY_STANDALONE_WIN || UNITY_EDITOR
         CreateRelayAndStartServer();
 #elif UNITY_ANDROID
-            JoinRelayAndConnect();
+        JoinRelayAndConnect();
 #endif
     }
 
@@ -45,7 +50,7 @@ public class NetworkManagerUI : MonoBehaviour
     {
         try
         {
-            var allocation = await RelayService.Instance.CreateAllocationAsync(4); // Hasta 4 jugadores
+            var allocation = await RelayService.Instance.CreateAllocationAsync(10);
             var joinCode = await RelayService.Instance.GetJoinCodeAsync(allocation.AllocationId);
 
             NetworkManager.Singleton.GetComponent<UnityTransport>().SetRelayServerData(
@@ -54,18 +59,16 @@ public class NetworkManagerUI : MonoBehaviour
                 allocation.AllocationIdBytes,
                 allocation.Key,
                 allocation.ConnectionData,
-                allocation.ConnectionData // For the host, the connection data and host connection data are the same
+                allocation.ConnectionData
             );
 
+            NetworkManager.Singleton.OnClientConnectedCallback += OnClientConnected;
             NetworkManager.Singleton.StartServer();
 
-            // Crea un lobby y almacena el join code
             var lobby = await LobbyService.Instance.CreateLobbyAsync("LobbyName", 4, new CreateLobbyOptions
             {
                 IsPrivate = false,
-                Data = new Dictionary<string, DataObject> {
-                { "joinCode", new DataObject(DataObject.VisibilityOptions.Public, joinCode) }
-            }
+                Data = new Dictionary<string, DataObject> { { "joinCode", new DataObject(DataObject.VisibilityOptions.Public, joinCode) } }
             });
 
             Debug.Log($"Servidor iniciado con código de unión: {joinCode}");
@@ -79,14 +82,12 @@ public class NetworkManagerUI : MonoBehaviour
     private async void JoinRelayAndConnect()
     {
         try
-        { 
-            // Verificar si ya estamos conectados y evitar intentar conectarse nuevamente
+        {
             if (NetworkManager.Singleton.IsClient || NetworkManager.Singleton.IsServer)
             {
                 return;
             }
 
-            // Buscar un lobby disponible
             var lobbies = await LobbyService.Instance.QueryLobbiesAsync();
             if (lobbies.Results.Count > 0)
             {
@@ -116,6 +117,23 @@ public class NetworkManagerUI : MonoBehaviour
             Debug.LogError(e);
         }
     }
+
+    private void OnClientConnected(ulong clientId)
+    {
+        Debug.Log($"Cliente conectado con ID: {clientId}");
+
+        if (NetworkManager.Singleton.IsServer)
+        {
+            // Lógica para manejar la conexión del cliente y spawnear el jugador
+            Vector2d latLon = LocationProviderFactory.Instance.DefaultLocationProvider.CurrentLocation.LatitudeLongitude;
+            Vector3 spawnPosition = LocationProviderFactory.Instance.mapManager.GeoToWorldPosition(latLon);
+
+            // Instanciar jugador para el cliente conectado
+            var playerInstance = Instantiate(playerPrefab, spawnPosition, Quaternion.identity);
+            playerInstance.GetComponent<NetworkObject>().SpawnAsPlayerObject(clientId);
+        }
+    }
+
     private void OnApplicationQuit()
     {
         if (NetworkManager.Singleton != null)
@@ -123,6 +141,4 @@ public class NetworkManagerUI : MonoBehaviour
             NetworkManager.Singleton.Shutdown();
         }
     }
-
-
 }
