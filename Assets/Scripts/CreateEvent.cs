@@ -38,7 +38,7 @@ public class CreateEvent : MonoBehaviour
     public void OnAddEventButtonClicked()
     {
         isCreatingEvent = true;
-        Debug.Log("isCreatingEvent: " + isCreatingEvent);
+        //Debug.Log("isCreatingEvent: " + isCreatingEvent);
         mainCanvas.SetActive(false); // Oculta el Canvas principal
         exitButton.SetActive(true); // Muestra el botón de salir
     }
@@ -46,7 +46,7 @@ public class CreateEvent : MonoBehaviour
     public void OnExitButtonClicked()
     {
         isCreatingEvent = false;
-        Debug.Log("isCreatingEvent: " + isCreatingEvent);
+        //Debug.Log("isCreatingEvent: " + isCreatingEvent);
         mainCanvas.SetActive(true); // Muestra el Canvas principal
         exitButton.SetActive(false); // Oculta el botón de salir
     }
@@ -65,11 +65,11 @@ public class CreateEvent : MonoBehaviour
             if (plane.Raycast(ray, out distance))
             {
                 Vector3 worldPosition = ray.GetPoint(distance);
-                Debug.Log("World Position: " + worldPosition);
+                //Debug.Log("World Position: " + worldPosition);
 
                 // Convertir worldPosition a coordenadas geográficas (latitud y longitud)
                 Vector2d geoPosition = _map.WorldToGeoPosition(worldPosition);
-                Debug.Log("Geo Position: " + geoPosition);
+                //Debug.Log("Geo Position: " + geoPosition);
 
                 // Solicitar al servidor crear el evento
                 eventSpawner.RequestCreateEvent(worldPosition, geoPosition);
@@ -93,10 +93,10 @@ public class CreateEvent : MonoBehaviour
                 if (plane.Raycast(ray, out distance))
                 {
                     Vector3 worldPosition = ray.GetPoint(distance);
-                    Debug.Log("World Position: " + worldPosition);
+                    //Debug.Log("World Position: " + worldPosition);
 
                     Vector2d geoPosition = _map.WorldToGeoPosition(worldPosition);
-                    Debug.Log("Geo Position: " + geoPosition);
+                   // Debug.Log("Geo Position: " + geoPosition);
 
                     // Solicitar al servidor crear el evento
                     eventSpawner.RequestCreateEvent(worldPosition, geoPosition);

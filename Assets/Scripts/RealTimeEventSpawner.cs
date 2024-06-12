@@ -5,16 +5,30 @@ using System.Collections.Generic;
 using Mapbox.Utils;
 using UnityEngine.UI;
 using TMPro;
+using System;
+using System.Reflection;
 
 public class RealTimeEventSpawner : NetworkBehaviour
 {
     [SerializeField]
     GameObject eventPrefab; // Prefab del evento a instanciar
 
+    // Estructura para almacenar los datos del panel de información
+    [Serializable]
+    public class EventInfoData
+    {
+        public string title;
+        public string info;
+    }
+
+    [SerializeField]
+    private Dictionary<int, EventInfoData> eventInfoDictionary = new Dictionary<int, EventInfoData>();
+
+
     public GameObject mainCanvas;
 
     public List<GameObject> spawnedEvents = new List<GameObject>();
-    public List<Vector3> eventPositions = new List<Vector3>(); 
+    public List<Vector3> eventPositions = new List<Vector3>();
     public List<Vector2d> geoPositions = new List<Vector2d>();
 
     public static RealTimeEventSpawner Instance { get; private set; }
@@ -36,8 +50,6 @@ public class RealTimeEventSpawner : NetworkBehaviour
 
     private void Update()
     {
-        
-
         for (int i = spawnedEvents.Count - 1; i >= 0; i--)
         {
             if (spawnedEvents[i] == null)
@@ -49,13 +61,13 @@ public class RealTimeEventSpawner : NetworkBehaviour
                 Vector3 currentPosition = spawnedEvents[i].transform.position;
                 if (currentPosition.y != 5)
                 {
-                    Debug.LogWarning("Correcting Y position for: " + spawnedEvents[i].name);
+                    //Debug.LogWarning("Correcting Y position for: " + spawnedEvents[i].name);
                     spawnedEvents[i].transform.position = new Vector3(currentPosition.x, 5, currentPosition.z);
                 }
 
                 if (spawnedEvents[i].transform.hasChanged)
                 {
-                    Debug.LogWarning("Transform has changed for event: " + spawnedEvents[i].name);
+                    //Debug.LogWarning("Transform has changed for event: " + spawnedEvents[i].name);
                     spawnedEvents[i].transform.hasChanged = false;
                 }
             }
@@ -116,7 +128,6 @@ public class RealTimeEventSpawner : NetworkBehaviour
     // Método que crea el evento en el servidor
     void CreateEvent(Vector3 worldPosition, Vector2d geoPosition)
     {
-        Debug.Log("Creating event at position: " + worldPosition);
         worldPosition.y = 5; // Establecer la Y en 5
         GameObject eventInstance = Instantiate(eventPrefab, worldPosition, Quaternion.identity);
 
@@ -159,7 +170,6 @@ public class RealTimeEventSpawner : NetworkBehaviour
                 inputPanel.gameObject.SetActive(true);
 
                 // Obtener referencias a los InputField y Button
-                // Obtener referencias a los InputField y Button
                 TMP_InputField titleInput = inputPanel.Find("TitleInputField").GetComponent<TMP_InputField>();
                 TMP_InputField infoInput = inputPanel.Find("InfoInputField").GetComponent<TMP_InputField>();
                 Button confirmButton = inputPanel.Find("ConfirmButton").GetComponent<Button>();
@@ -185,39 +195,29 @@ public class RealTimeEventSpawner : NetworkBehaviour
             canvas.gameObject.SetActive(false);
         }
 
-        // Enviar los datos al servidor para sincronizarlos con todos los clientes
         ulong objectId = eventInstance.GetComponent<NetworkObject>().NetworkObjectId;
-        UpdateEventDataServerRpc(objectId, title, info);
+
+        // Almacenar los datos en el diccionario
+        int index = spawnedEvents.IndexOf(eventInstance);
+        eventInfoDictionary[index] = new EventInfoData { title = title, info = info };
+        Debug.Log(eventInfoDictionary[index].info + "DATOS GUARDADOS EN DICCIONARIO");
+        PrintEventInfoDictionary();
+
+        // Enviar los datos al servidor para sincronizarlos con todos los clientes
+        UpdateEventDataServerRpc(objectId,index, title, info);
 
         mainCanvas.SetActive(true);
     }
 
     [ServerRpc(RequireOwnership = false)]
-    void UpdateEventDataServerRpc(ulong objectId, string title, string info)
+    void UpdateEventDataServerRpc(ulong objectId, int index, string title, string info)
     {
         GameObject eventInstance = NetworkManager.Singleton.SpawnManager.SpawnedObjects[objectId].gameObject;
 
-        Transform canvas = eventInstance.transform.Find("EventCanvas");
-        if (canvas != null)
-        {
-            Transform eventInfoPanel = canvas.Find("EventInfo");
-            if (eventInfoPanel != null)
-            {
-                TextMeshProUGUI titleText = eventInfoPanel.Find("EventTitle").GetComponent<TextMeshProUGUI>();
-                TextMeshProUGUI infoText = eventInfoPanel.Find("EventInstructions").GetComponent<TextMeshProUGUI>();
-
-                if (titleText != null)
-                {
-                    titleText.text = title;
-                }
-
-                if (infoText != null)
-                {
-                    infoText.text = info;
-                }
-            }
-        }
-
+        // Actualizar el diccionario con los nuevos datos
+        eventInfoDictionary[index] = new EventInfoData { title = title, info = info };
+        Debug.Log(eventInfoDictionary[index].info + "DATOS GUARDADOS EN DICCIONARIO SERVIDOR");
+        PrintEventInfoDictionary();
 
         // Notificar a todos los clientes para actualizar los datos del evento
         UpdateEventDataClientRpc(objectId, title, info);
@@ -229,12 +229,20 @@ public class RealTimeEventSpawner : NetworkBehaviour
     {
         GameObject eventInstance = NetworkManager.Singleton.SpawnManager.SpawnedObjects[objectId].gameObject;
 
+        // Actualizar el panel de información con los nuevos datos
+        UpdateEventInfoPanel(eventInstance, title, info);
+    }
+
+    // Método para actualizar el panel de información con los nuevos datos
+    void UpdateEventInfoPanel(GameObject eventInstance, string title, string info)
+    {
         Transform canvas = eventInstance.transform.Find("EventCanvas");
         if (canvas != null)
         {
             Transform eventInfoPanel = canvas.Find("EventInfo");
             if (eventInfoPanel != null)
             {
+                Debug.Log("SE CAMBIO INFO PANEL!!!");
                 TextMeshProUGUI titleText = eventInfoPanel.Find("EventTitle").GetComponent<TextMeshProUGUI>();
                 TextMeshProUGUI infoText = eventInfoPanel.Find("EventInstructions").GetComponent<TextMeshProUGUI>();
 
@@ -263,9 +271,8 @@ public class RealTimeEventSpawner : NetworkBehaviour
     }
 
     // Método que crea el evento en el cliente (sin NetworkObject)
-     void CreateClientEvent(Vector3 worldPosition, Vector2d geoPosition)
-     {
-        Debug.Log("Creating client-side event at position: " + worldPosition);
+    void CreateClientEvent(Vector3 worldPosition, Vector2d geoPosition)
+    {
         worldPosition.y = 5; // Establecer la Y en 5
         GameObject eventInstance = Instantiate(eventPrefab, worldPosition, Quaternion.identity);
 
@@ -280,17 +287,16 @@ public class RealTimeEventSpawner : NetworkBehaviour
 
         spawnedEvents.Add(eventInstance);
         eventInstance.transform.position = new Vector3(worldPosition.x, 5, worldPosition.z);
-     }
+    }
 
 
-    // Método para manejar la carga de escenas
+    // Método para manejar la carga de la escena
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
         if (scene.name == "Location-basedGame") // Asegúrate de que este es el nombre correcto de tu escena
         {
             mainCanvas = GameObject.Find("Canvas");
 
-            Debug.Log("VOLVIMOS ESCENA LOCATION");
             // Activar el spawner y recrear los eventos al cargar la escena original
             gameObject.SetActive(true);
 
@@ -329,7 +335,6 @@ public class RealTimeEventSpawner : NetworkBehaviour
             Vector3 worldPosition = eventPositions[i];
             Vector2d geoPosition = geoPositions[i];
 
-            Debug.Log("Recreating event at position: " + worldPosition);
             // Establecer la Y en 5
             Vector3 adjustedPosition = new Vector3(worldPosition.x, 5, worldPosition.z);
 
@@ -351,7 +356,19 @@ public class RealTimeEventSpawner : NetworkBehaviour
             }
 
             eventInstance.transform.position = adjustedPosition;
+
+            // Si hay información guardada para este evento, actualizar el panel de información
+            ulong objectId = eventInstance.GetComponent<NetworkObject>().NetworkObjectId;
+            Debug.Log("ID OBJETO RECREADO: "+ objectId);
+            if (eventInfoDictionary.ContainsKey(i))
+            {
+                EventInfoData eventData = eventInfoDictionary[i];
+                Debug.Log("Cargo informacion del diccionario");
+                UpdateEventInfoPanel(eventInstance, eventData.title, eventData.info);
+            }
         }
+
+        PrintEventInfoDictionary();
     }
 
     [ServerRpc(RequireOwnership = false)]
@@ -361,7 +378,7 @@ public class RealTimeEventSpawner : NetworkBehaviour
         SyncEventPositionsClientRpc(eventPositions.ToArray(), geoPositions.ToArray(), rpcParams.Receive.SenderClientId);
     }
 
-   [ClientRpc]
+    [ClientRpc]
     private void SyncEventPositionsClientRpc(Vector3[] positions, Vector2d[] geoPos, ulong clientId)
     {
         if (NetworkManager.Singleton.LocalClientId == clientId)
@@ -388,7 +405,6 @@ public class RealTimeEventSpawner : NetworkBehaviour
             Vector3 worldPosition = eventPositions[i];
             Vector2d geoPosition = geoPositions[i];
 
-            Debug.Log("Recreating client-side event at position: " + worldPosition);
             // Establecer la Y en 5
             Vector3 adjustedPosition = new Vector3(worldPosition.x, 5, worldPosition.z);
 
@@ -404,6 +420,28 @@ public class RealTimeEventSpawner : NetworkBehaviour
             }
 
             eventInstance.transform.position = adjustedPosition;
+
+            // Si hay información guardada para este evento, actualizar el panel de información
+            ulong objectId = eventInstance.GetComponent<NetworkObject>().NetworkObjectId;
+            if (eventInfoDictionary.ContainsKey(i))
+            {
+                EventInfoData eventData = eventInfoDictionary[i];
+                Debug.Log("Cargo informacion del diccionario en cliente");
+                UpdateEventInfoPanel(eventInstance, eventData.title, eventData.info);
+            }
         }
     }
+
+    private void PrintEventInfoDictionary()
+    {
+        Debug.Log("IMPRIMIENDO INFO DICCIONARIO:");
+        foreach (var kvp in eventInfoDictionary)
+        {
+            int index = kvp.Key;
+            EventInfoData eventData = kvp.Value;
+            Debug.Log($"Index: {index}, Title: {eventData.title}, Info: {eventData.info}");
+        }
+    }
+
+
 }
