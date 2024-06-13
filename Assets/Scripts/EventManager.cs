@@ -6,7 +6,7 @@ using UnityEngine.SceneManagement;
 
 public class EventManager : MonoBehaviour
 {
-    public int maxDist = 100;
+    public int maxDist = 300;
     void Start()
     {
         
@@ -21,7 +21,7 @@ public class EventManager : MonoBehaviour
     {
         if (eventID == 1) 
         {
-            SceneManager.LoadScene("EventoAulario 2");
+            SceneManager.LoadScene("RelajacionCesped");
         } else if (eventID == 2)
         {
             SceneManager.LoadScene("EventoAulario 1");
@@ -43,11 +43,7 @@ public class EventManager : MonoBehaviour
         }
         else if (eventID == 7)
         {
-            SceneManager.LoadScene("EventoBiblioteca");
-        }
-        else if (eventID == 8)
-        {
-            SceneManager.LoadScene("EventoAulario 2");
+            SceneManager.LoadScene("EventoAulario 1");
         }
 
     }

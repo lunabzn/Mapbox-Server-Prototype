@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using Unity.Netcode;
 using Mapbox.Unity.Location;
 using Mapbox.Utils;
@@ -19,6 +20,9 @@ public class PlayerController : NetworkBehaviour
         {
             _locationProvider = LocationProviderFactory.Instance.DefaultLocationProvider;
         }
+
+        SceneManager.sceneLoaded += OnSceneLoaded;
+        CheckSceneAndActivate();
     }
 
     void Update()
@@ -42,5 +46,27 @@ public class PlayerController : NetworkBehaviour
     void UpdatePositionServerRpc(Vector3 position)
     {
         syncedPosition.Value = position;
+    }
+
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        CheckSceneAndActivate();
+    }
+
+    private void CheckSceneAndActivate()
+    {
+        if (SceneManager.GetActiveScene().name != "Location-basedGame")
+        {
+            gameObject.SetActive(false);
+        }
+        else
+        {
+            gameObject.SetActive(true);
+        }
+    }
+
+    private void OnDestroy()
+    {
+        SceneManager.sceneLoaded -= OnSceneLoaded;
     }
 }

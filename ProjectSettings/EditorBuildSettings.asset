@@ -12,10 +12,10 @@ EditorBuildSettings:
     path: Assets/Scenes/Tutorial.unity
     guid: 798c3bcade6c7904fa86890b8cb60d9e
   - enabled: 1
-    path: Assets/Scenes/EventoAulario 1.unity
+    path: Assets/Scenes/RelajacionCesped.unity
     guid: 010826be421013d4dbee11b92ad81b4a
   - enabled: 1
-    path: Assets/Scenes/EventoAulario 2.unity
+    path: Assets/Scenes/EventoAulario 1.unity
     guid: 3fad6788fdcdb624fa7443997c169be9
   - enabled: 1
     path: Assets/Scenes/EventoBiblioteca.unity
@@ -29,9 +29,6 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/EventoPingPong.unity
     guid: 749a9f98b88f44140b0e007cb798a315
-  - enabled: 1
-    path: Assets/Scenes/EventoRectorado.unity
-    guid: 3a1598b871bbfe749861d57d7b607480
   - enabled: 1
     path: Assets/Scenes/EventoRealizado.unity
     guid: 2012ec628ae17d54ba509ca99d760976

@@ -50,7 +50,7 @@ public class NetworkManagerUI : MonoBehaviour
     {
         try
         {
-            var allocation = await RelayService.Instance.CreateAllocationAsync(10);
+            var allocation = await RelayService.Instance.CreateAllocationAsync(20);
             var joinCode = await RelayService.Instance.GetJoinCodeAsync(allocation.AllocationId);
 
             NetworkManager.Singleton.GetComponent<UnityTransport>().SetRelayServerData(

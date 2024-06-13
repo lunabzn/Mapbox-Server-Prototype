@@ -47,7 +47,7 @@ public class CreateEvent : MonoBehaviour
     {
         isCreatingEvent = false;
         //Debug.Log("isCreatingEvent: " + isCreatingEvent);
-        mainCanvas.SetActive(true); // Muestra el Canvas principal
+        //mainCanvas.SetActive(true); // Muestra el Canvas principal
         exitButton.SetActive(false); // Oculta el botón de salir
     }
 

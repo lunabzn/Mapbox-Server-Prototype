@@ -6,7 +6,6 @@ using Mapbox.Utils;
 using UnityEngine.UI;
 using TMPro;
 using System;
-using System.Reflection;
 
 public class RealTimeEventSpawner : NetworkBehaviour
 {
@@ -23,7 +22,6 @@ public class RealTimeEventSpawner : NetworkBehaviour
 
     [SerializeField]
     private Dictionary<int, EventInfoData> eventInfoDictionary = new Dictionary<int, EventInfoData>();
-
 
     public GameObject mainCanvas;
 
@@ -48,6 +46,15 @@ public class RealTimeEventSpawner : NetworkBehaviour
         }
     }
 
+    private void Start()
+    {
+        if (IsServer)
+        {
+            // Recrear los pines en el Start si es el servidor
+            RecreateEvents();
+        }
+    }
+
     private void Update()
     {
         for (int i = spawnedEvents.Count - 1; i >= 0; i--)
@@ -61,13 +68,11 @@ public class RealTimeEventSpawner : NetworkBehaviour
                 Vector3 currentPosition = spawnedEvents[i].transform.position;
                 if (currentPosition.y != 5)
                 {
-                    //Debug.LogWarning("Correcting Y position for: " + spawnedEvents[i].name);
                     spawnedEvents[i].transform.position = new Vector3(currentPosition.x, 5, currentPosition.z);
                 }
 
                 if (spawnedEvents[i].transform.hasChanged)
                 {
-                    //Debug.LogWarning("Transform has changed for event: " + spawnedEvents[i].name);
                     spawnedEvents[i].transform.hasChanged = false;
                 }
             }
@@ -76,59 +81,58 @@ public class RealTimeEventSpawner : NetworkBehaviour
 
     private void OnEnable()
     {
-        // Suscribirse al evento SceneManager.sceneLoaded cuando este script se active
         SceneManager.sceneLoaded += OnSceneLoaded;
     }
 
     private void OnDisable()
     {
-        // Desuscribirse del evento SceneManager.sceneLoaded cuando este script se desactive
         SceneManager.sceneLoaded -= OnSceneLoaded;
     }
 
-    private void Start()
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        if (IsServer)
+        if (scene.name == "Location-basedGame")
         {
-            // Recrear los pines en el Start si es el servidor
-            RecreateEvents();
+            mainCanvas = GameObject.Find("Canvas");
+            gameObject.SetActive(true);
+
+            if (IsServer)
+            {
+                RecreateEvents();
+            }
+            else
+            {
+                RequestEventPositionsServerRpc();
+            }
         }
     }
 
-    // Método llamado por los clientes para solicitar la creación de un evento
     public void RequestCreateEvent(Vector3 worldPosition, Vector2d geoPosition)
     {
         if (IsClient)
         {
-            // El cliente solicita la creación del evento al servidor
-            CreateEventServerRpc(worldPosition, geoPosition);
+            CreateEventServerRpc(worldPosition, geoPosition, NetworkManager.Singleton.LocalClientId);
         }
     }
 
-    // ServerRpc para manejar la solicitud de creación de evento desde el cliente
     [ServerRpc(RequireOwnership = false)]
-    public void CreateEventServerRpc(Vector3 worldPosition, Vector2d geoPosition, ServerRpcParams rpcParams = default)
+    public void CreateEventServerRpc(Vector3 worldPosition, Vector2d geoPosition, ulong clientId, ServerRpcParams rpcParams = default)
     {
         if (IsServer)
         {
-            // Comprobar si la ubicación ya está en la lista de eventos
             if (!eventPositions.Contains(worldPosition))
             {
-                // Añadir la ubicación del evento a la lista
                 eventPositions.Add(worldPosition);
                 geoPositions.Add(geoPosition);
-                // Crear el evento en el servidor
-                CreateEvent(worldPosition, geoPosition);
-                // Notificar a todos los clientes para crear el evento en sus mapas
+                CreateEvent(worldPosition, geoPosition, clientId);
                 CreateEventClientRpc(worldPosition, geoPosition);
             }
         }
     }
 
-    // Método que crea el evento en el servidor
-    void CreateEvent(Vector3 worldPosition, Vector2d geoPosition)
+    void CreateEvent(Vector3 worldPosition, Vector2d geoPosition, ulong clientId)
     {
-        worldPosition.y = 5; // Establecer la Y en 5
+        worldPosition.y = 5;
         GameObject eventInstance = Instantiate(eventPrefab, worldPosition, Quaternion.identity);
 
         NetworkObject networkObject = eventInstance.GetComponent<NetworkObject>();
@@ -137,7 +141,6 @@ public class RealTimeEventSpawner : NetworkBehaviour
             networkObject.Spawn();
         }
 
-        // Asignar coordenadas geográficas al EventController del evento
         EventController eventController = eventInstance.GetComponent<EventController>();
         if (eventController != null)
         {
@@ -146,16 +149,24 @@ public class RealTimeEventSpawner : NetworkBehaviour
         }
 
         spawnedEvents.Add(eventInstance);
-
-        // Asegurarse de que la posición Y no cambie después de la instanciación
         eventInstance.transform.position = new Vector3(worldPosition.x, 5, worldPosition.z);
 
-        // Mostrar el panel de entrada de datos
-        mainCanvas.SetActive(false);
-        ShowInputPanel(eventInstance);
+        ShowInputPanelClientRpc(clientId, networkObject.NetworkObjectId);
     }
 
-    // Método que activa el panel de entrada de datos en el evento
+    [ClientRpc]
+    void ShowInputPanelClientRpc(ulong clientId, ulong eventNetworkObjectId)
+    {
+        GameObject eventInstance = NetworkManager.Singleton.SpawnManager.SpawnedObjects[eventNetworkObjectId].gameObject;
+        if (NetworkManager.Singleton.LocalClientId == clientId)
+        {
+            if (eventInstance != null)
+            {
+                ShowInputPanel(eventInstance);
+            }
+        }
+    }
+
     void ShowInputPanel(GameObject eventInstance)
     {
         Transform canvas = eventInstance.transform.Find("EventCanvas");
@@ -169,21 +180,17 @@ public class RealTimeEventSpawner : NetworkBehaviour
             {
                 inputPanel.gameObject.SetActive(true);
 
-                // Obtener referencias a los InputField y Button
                 TMP_InputField titleInput = inputPanel.Find("TitleInputField").GetComponent<TMP_InputField>();
                 TMP_InputField infoInput = inputPanel.Find("InfoInputField").GetComponent<TMP_InputField>();
                 Button confirmButton = inputPanel.Find("ConfirmButton").GetComponent<Button>();
 
-                // Asignar el evento al botón para confirmar los datos
                 confirmButton.onClick.AddListener(() => OnConfirmInput(eventInstance, titleInput.text, infoInput.text));
             }
         }
     }
 
-    // Método para manejar la confirmación de los datos de entrada
     void OnConfirmInput(GameObject eventInstance, string title, string info)
     {
-        // Desactivar el InputPanel y el Canvas después de la confirmación
         Transform canvas = eventInstance.transform.Find("EventCanvas");
         if (canvas != null)
         {
@@ -196,44 +203,42 @@ public class RealTimeEventSpawner : NetworkBehaviour
         }
 
         ulong objectId = eventInstance.GetComponent<NetworkObject>().NetworkObjectId;
-
         // Almacenar los datos en el diccionario
         int index = spawnedEvents.IndexOf(eventInstance);
         eventInfoDictionary[index] = new EventInfoData { title = title, info = info };
-        Debug.Log(eventInfoDictionary[index].info + "DATOS GUARDADOS EN DICCIONARIO");
+        Debug.Log(eventInfoDictionary[index].info + "DATOS GUARDADOS EN DICCIONARIO CON INDICE: " + index);
+
+        //imprimir info diccionario
         PrintEventInfoDictionary();
 
-        // Enviar los datos al servidor para sincronizarlos con todos los clientes
-        UpdateEventDataServerRpc(objectId,index, title, info);
+        //actualizar en servidor
+        UpdateEventDataServerRpc(objectId, index, title, info);
+        
 
-        mainCanvas.SetActive(true);
+        if (mainCanvas != null)
+        {
+            mainCanvas.SetActive(true);
+        }
     }
 
     [ServerRpc(RequireOwnership = false)]
     void UpdateEventDataServerRpc(ulong objectId, int index, string title, string info)
-    {
-        GameObject eventInstance = NetworkManager.Singleton.SpawnManager.SpawnedObjects[objectId].gameObject;
-
+    {        
         // Actualizar el diccionario con los nuevos datos
         eventInfoDictionary[index] = new EventInfoData { title = title, info = info };
         Debug.Log(eventInfoDictionary[index].info + "DATOS GUARDADOS EN DICCIONARIO SERVIDOR");
-        PrintEventInfoDictionary();
 
-        // Notificar a todos los clientes para actualizar los datos del evento
         UpdateEventDataClientRpc(objectId, title, info);
     }
 
-    // ClientRpc para actualizar los datos del evento en todos los clientes
     [ClientRpc]
     void UpdateEventDataClientRpc(ulong objectId, string title, string info)
     {
-        GameObject eventInstance = NetworkManager.Singleton.SpawnManager.SpawnedObjects[objectId].gameObject;
-
-        // Actualizar el panel de información con los nuevos datos
+        
+         GameObject eventInstance = NetworkManager.Singleton.SpawnManager.SpawnedObjects[objectId].gameObject;
         UpdateEventInfoPanel(eventInstance, title, info);
     }
 
-    // Método para actualizar el panel de información con los nuevos datos
     void UpdateEventInfoPanel(GameObject eventInstance, string title, string info)
     {
         Transform canvas = eventInstance.transform.Find("EventCanvas");
@@ -242,7 +247,7 @@ public class RealTimeEventSpawner : NetworkBehaviour
             Transform eventInfoPanel = canvas.Find("EventInfo");
             if (eventInfoPanel != null)
             {
-                Debug.Log("SE CAMBIO INFO PANEL!!!");
+                Debug.Log("Actualizando el panel de información.");
                 TextMeshProUGUI titleText = eventInfoPanel.Find("EventTitle").GetComponent<TextMeshProUGUI>();
                 TextMeshProUGUI infoText = eventInfoPanel.Find("EventInstructions").GetComponent<TextMeshProUGUI>();
 
@@ -259,24 +264,20 @@ public class RealTimeEventSpawner : NetworkBehaviour
         }
     }
 
-    // Método llamado por el servidor para notificar a todos los clientes de la creación del evento
     [ClientRpc]
     void CreateEventClientRpc(Vector3 worldPosition, Vector2d geoPosition)
     {
         if (!IsServer)
         {
-            // Solo los clientes ejecutan este código
             CreateClientEvent(worldPosition, geoPosition);
         }
     }
 
-    // Método que crea el evento en el cliente (sin NetworkObject)
     void CreateClientEvent(Vector3 worldPosition, Vector2d geoPosition)
     {
-        worldPosition.y = 5; // Establecer la Y en 5
+        worldPosition.y = 5;
         GameObject eventInstance = Instantiate(eventPrefab, worldPosition, Quaternion.identity);
 
-        // Asignar coordenadas geográficas al EventController del evento
         EventController eventController = eventInstance.GetComponent<EventController>();
 
         if (eventController != null)
@@ -289,32 +290,8 @@ public class RealTimeEventSpawner : NetworkBehaviour
         eventInstance.transform.position = new Vector3(worldPosition.x, 5, worldPosition.z);
     }
 
-
-    // Método para manejar la carga de la escena
-    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
-    {
-        if (scene.name == "Location-basedGame") // Asegúrate de que este es el nombre correcto de tu escena
-        {
-            mainCanvas = GameObject.Find("Canvas");
-
-            // Activar el spawner y recrear los eventos al cargar la escena original
-            gameObject.SetActive(true);
-
-            // Instancia de nuevo los pines
-            if (IsServer)
-            {
-                RecreateEvents();
-            }
-            else
-            {
-                RequestEventPositionsServerRpc();
-            }
-        }
-    }
-
     private void RecreateEvents()
     {
-        // Limpiar la lista de objetos instanciados
         foreach (var spawnedEvent in spawnedEvents)
         {
             if (spawnedEvent != null)
@@ -335,10 +312,8 @@ public class RealTimeEventSpawner : NetworkBehaviour
             Vector3 worldPosition = eventPositions[i];
             Vector2d geoPosition = geoPositions[i];
 
-            // Establecer la Y en 5
             Vector3 adjustedPosition = new Vector3(worldPosition.x, 5, worldPosition.z);
 
-            // Instanciar el evento en la posición calculada
             GameObject eventInstance = Instantiate(eventPrefab, adjustedPosition, Quaternion.identity);
             spawnedEvents.Add(eventInstance);
 
@@ -357,13 +332,12 @@ public class RealTimeEventSpawner : NetworkBehaviour
 
             eventInstance.transform.position = adjustedPosition;
 
-            // Si hay información guardada para este evento, actualizar el panel de información
             ulong objectId = eventInstance.GetComponent<NetworkObject>().NetworkObjectId;
-            Debug.Log("ID OBJETO RECREADO: "+ objectId);
+            Debug.Log($"ID del objeto recreado: {objectId}");
             if (eventInfoDictionary.ContainsKey(i))
             {
                 EventInfoData eventData = eventInfoDictionary[i];
-                Debug.Log("Cargo informacion del diccionario");
+                Debug.Log("Cargando información del diccionario.");
                 UpdateEventInfoPanel(eventInstance, eventData.title, eventData.info);
             }
         }
@@ -374,7 +348,6 @@ public class RealTimeEventSpawner : NetworkBehaviour
     [ServerRpc(RequireOwnership = false)]
     private void RequestEventPositionsServerRpc(ServerRpcParams rpcParams = default)
     {
-        // Enviar las posiciones de los eventos al cliente que lo solicitó
         SyncEventPositionsClientRpc(eventPositions.ToArray(), geoPositions.ToArray(), rpcParams.Receive.SenderClientId);
     }
 
@@ -387,7 +360,7 @@ public class RealTimeEventSpawner : NetworkBehaviour
             geoPositions.Clear();
 
             eventPositions.AddRange(positions);
-            this.geoPositions.AddRange(geoPos);
+            geoPositions.AddRange(geoPos);
             RecreateClientEvents();
         }
     }
@@ -405,10 +378,8 @@ public class RealTimeEventSpawner : NetworkBehaviour
             Vector3 worldPosition = eventPositions[i];
             Vector2d geoPosition = geoPositions[i];
 
-            // Establecer la Y en 5
             Vector3 adjustedPosition = new Vector3(worldPosition.x, 5, worldPosition.z);
 
-            // Instanciar el evento en la posición calculada
             GameObject eventInstance = Instantiate(eventPrefab, adjustedPosition, Quaternion.identity);
             spawnedEvents.Add(eventInstance);
 
@@ -421,12 +392,11 @@ public class RealTimeEventSpawner : NetworkBehaviour
 
             eventInstance.transform.position = adjustedPosition;
 
-            // Si hay información guardada para este evento, actualizar el panel de información
             ulong objectId = eventInstance.GetComponent<NetworkObject>().NetworkObjectId;
             if (eventInfoDictionary.ContainsKey(i))
             {
                 EventInfoData eventData = eventInfoDictionary[i];
-                Debug.Log("Cargo informacion del diccionario en cliente");
+                Debug.Log("Cargando información del diccionario en cliente.");
                 UpdateEventInfoPanel(eventInstance, eventData.title, eventData.info);
             }
         }
@@ -434,14 +404,12 @@ public class RealTimeEventSpawner : NetworkBehaviour
 
     private void PrintEventInfoDictionary()
     {
-        Debug.Log("IMPRIMIENDO INFO DICCIONARIO:");
+        Debug.Log("Imprimiendo información del diccionario:");
         foreach (var kvp in eventInfoDictionary)
         {
             int index = kvp.Key;
             EventInfoData eventData = kvp.Value;
-            Debug.Log($"Index: {index}, Title: {eventData.title}, Info: {eventData.info}");
+            Debug.Log($"Índice: {index}, Título: {eventData.title}, Información: {eventData.info}");
         }
     }
-
-
 }
