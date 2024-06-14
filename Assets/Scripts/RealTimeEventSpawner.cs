@@ -6,7 +6,6 @@ using Mapbox.Utils;
 using UnityEngine.UI;
 using TMPro;
 using System;
-using System.Reflection;
 
 public class RealTimeEventSpawner : NetworkBehaviour
 {
@@ -207,15 +206,11 @@ public class RealTimeEventSpawner : NetworkBehaviour
             canvas.gameObject.SetActive(false);
         }
 
-        //int index = spawnedEvents.IndexOf(eventInstance);
         if (index >= 0)
         {
-            // Almacenar los datos en el diccionario
+            // Almacenar los datos en el diccionario localmente
             eventInfoDictionary[index] = new EventInfoData { title = title, info = info };
             Debug.Log(eventInfoDictionary[index].info + " DATOS GUARDADOS EN DICCIONARIO CON INDICE: " + index);
-
-            // Imprimir info diccionario
-            PrintEventInfoDictionary();
 
             // Actualizar en servidor
             UpdateEventDataServerRpc(eventInstance.GetComponent<NetworkObject>().NetworkObjectId, index, title, info);
@@ -230,7 +225,7 @@ public class RealTimeEventSpawner : NetworkBehaviour
     [ServerRpc(RequireOwnership = false)]
     void UpdateEventDataServerRpc(ulong objectId, int index, string title, string info)
     {
-        // Actualizar el diccionario con los nuevos datos
+        // Actualizar el diccionario con los nuevos datos en el servidor
         if (eventInfoDictionary.ContainsKey(index))
         {
             eventInfoDictionary[index] = new EventInfoData { title = title, info = info };
@@ -242,13 +237,25 @@ public class RealTimeEventSpawner : NetworkBehaviour
         Debug.Log(eventInfoDictionary[index].info + " DATOS GUARDADOS EN DICCIONARIO SERVIDOR");
         PrintEventInfoDictionary();
 
-        UpdateEventDataClientRpc(objectId, title, info, index);
+        // Sincronizar la entrada específica del diccionario con todos los clientes
+        SyncEventInfoEntryClientRpc(objectId, index, title, info);
     }
 
     [ClientRpc]
-    void UpdateEventDataClientRpc(ulong objectId, string title, string info, int index)
+    void SyncEventInfoEntryClientRpc(ulong objectId, int index, string title, string info)
     {
         Debug.Log("ClientRpc received. Updating event info panel.");
+        // Actualizar el diccionario en el cliente
+        if (eventInfoDictionary.ContainsKey(index))
+        {
+            eventInfoDictionary[index] = new EventInfoData { title = title, info = info };
+        }
+        else
+        {
+            eventInfoDictionary.Add(index, new EventInfoData { title = title, info = info });
+        }
+
+        // Actualizar el panel de información si el objeto existe
         if (NetworkManager.Singleton.SpawnManager.SpawnedObjects.TryGetValue(objectId, out var networkObject))
         {
             GameObject eventInstance = networkObject.gameObject;
@@ -257,7 +264,7 @@ public class RealTimeEventSpawner : NetworkBehaviour
         }
         else
         {
-            Debug.LogWarning("Event instance not found in UpdateEventDataClientRpc");
+            Debug.LogWarning("Event instance not found in SyncEventInfoEntryClientRpc");
         }
     }
 
@@ -276,7 +283,7 @@ public class RealTimeEventSpawner : NetworkBehaviour
                 if (titleText != null)
                 {
                     titleText.SetText(title);
-                    Debug.Log("TITULODEL PANEL: " +  titleText.text);
+                    Debug.Log("TITULODEL PANEL: " + titleText.text);
                     titleText.ForceMeshUpdate();
                 }
 
