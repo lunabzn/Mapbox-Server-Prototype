@@ -4,7 +4,7 @@ using UnityEngine.SceneManagement;
 
 public class ScoreManager : MonoBehaviour
 {
-    public Text scoreText;
+    //public Text scoreText;
     public Button addScoreButton;
 
     private int score;
@@ -13,7 +13,7 @@ public class ScoreManager : MonoBehaviour
     {
         // Load the score from PlayerPrefs
         score = PlayerPrefs.GetInt("Score", 0);
-        UpdateScoreText();
+        //UpdateScoreText();
 
         // Add a listener to the add score button
         addScoreButton.onClick.AddListener(AddScore);
@@ -23,17 +23,17 @@ public class ScoreManager : MonoBehaviour
     {
         // Add 10 points to the score
         score += 10;
-        UpdateScoreText();
+        //UpdateScoreText();
 
         // Save the score to PlayerPrefs
         PlayerPrefs.SetInt("Score", score);
     }
 
-    private void UpdateScoreText()
+    /*private void UpdateScoreText()
     {
         // Update the score text
         scoreText.text = "Score: " + score;
-    }
+    }*/
 
     private void OnApplicationQuit()
     {

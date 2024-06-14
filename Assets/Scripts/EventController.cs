@@ -59,6 +59,13 @@ public class EventController : MonoBehaviour
                 {
                     GameObject infoPanel = eventCanvas.transform.Find("EventInfo").gameObject;
                     infoPanel.SetActive(true);
+                    // Obtener el índice del evento en la lista
+                    int index = RealTimeEventSpawner.Instance.spawnedEvents.IndexOf(gameObject);
+                    if (index >= 0 && RealTimeEventSpawner.Instance.eventInfoDictionary.TryGetValue(index, out var eventData))
+                    {
+                        // Actualizar el panel de información con los datos
+                        RealTimeEventSpawner.Instance.UpdateEventInfoPanel(gameObject, eventData.title, eventData.info);
+                    }
                 }
             }
             if (distance > eventManager.maxDist) { uiManager.GetCloserPanel(); }

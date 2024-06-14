@@ -6,6 +6,7 @@ using Mapbox.Utils;
 using UnityEngine.UI;
 using TMPro;
 using System;
+using System.Reflection;
 
 public class RealTimeEventSpawner : NetworkBehaviour
 {
@@ -21,7 +22,7 @@ public class RealTimeEventSpawner : NetworkBehaviour
     }
 
     [SerializeField]
-    private Dictionary<int, EventInfoData> eventInfoDictionary = new Dictionary<int, EventInfoData>();
+    public Dictionary<int, EventInfoData> eventInfoDictionary = new Dictionary<int, EventInfoData>();
 
     public GameObject mainCanvas;
 
@@ -151,23 +152,27 @@ public class RealTimeEventSpawner : NetworkBehaviour
         spawnedEvents.Add(eventInstance);
         eventInstance.transform.position = new Vector3(worldPosition.x, 5, worldPosition.z);
 
-        ShowInputPanelClientRpc(clientId, networkObject.NetworkObjectId);
+        int index = spawnedEvents.IndexOf(eventInstance);
+        Debug.Log("Index of created event: " + index);
+
+        ShowInputPanelClientRpc(clientId, networkObject.NetworkObjectId, index);
     }
 
     [ClientRpc]
-    void ShowInputPanelClientRpc(ulong clientId, ulong eventNetworkObjectId)
+    void ShowInputPanelClientRpc(ulong clientId, ulong eventNetworkObjectId, int index)
     {
+        Debug.Log("Index of created event CLIENT: " + index);
         GameObject eventInstance = NetworkManager.Singleton.SpawnManager.SpawnedObjects[eventNetworkObjectId].gameObject;
         if (NetworkManager.Singleton.LocalClientId == clientId)
         {
             if (eventInstance != null)
             {
-                ShowInputPanel(eventInstance);
+                ShowInputPanel(eventInstance, index);
             }
         }
     }
 
-    void ShowInputPanel(GameObject eventInstance)
+    void ShowInputPanel(GameObject eventInstance, int index)
     {
         Transform canvas = eventInstance.transform.Find("EventCanvas");
 
@@ -184,12 +189,12 @@ public class RealTimeEventSpawner : NetworkBehaviour
                 TMP_InputField infoInput = inputPanel.Find("InfoInputField").GetComponent<TMP_InputField>();
                 Button confirmButton = inputPanel.Find("ConfirmButton").GetComponent<Button>();
 
-                confirmButton.onClick.AddListener(() => OnConfirmInput(eventInstance, titleInput.text, infoInput.text));
+                confirmButton.onClick.AddListener(() => OnConfirmInput(eventInstance, titleInput.text, infoInput.text, index));
             }
         }
     }
 
-    void OnConfirmInput(GameObject eventInstance, string title, string info)
+    void OnConfirmInput(GameObject eventInstance, string title, string info, int index)
     {
         Transform canvas = eventInstance.transform.Find("EventCanvas");
         if (canvas != null)
@@ -202,18 +207,19 @@ public class RealTimeEventSpawner : NetworkBehaviour
             canvas.gameObject.SetActive(false);
         }
 
-        ulong objectId = eventInstance.GetComponent<NetworkObject>().NetworkObjectId;
-        // Almacenar los datos en el diccionario
-        int index = spawnedEvents.IndexOf(eventInstance);
-        eventInfoDictionary[index] = new EventInfoData { title = title, info = info };
-        Debug.Log(eventInfoDictionary[index].info + "DATOS GUARDADOS EN DICCIONARIO CON INDICE: " + index);
+        //int index = spawnedEvents.IndexOf(eventInstance);
+        if (index >= 0)
+        {
+            // Almacenar los datos en el diccionario
+            eventInfoDictionary[index] = new EventInfoData { title = title, info = info };
+            Debug.Log(eventInfoDictionary[index].info + " DATOS GUARDADOS EN DICCIONARIO CON INDICE: " + index);
 
-        //imprimir info diccionario
-        PrintEventInfoDictionary();
+            // Imprimir info diccionario
+            PrintEventInfoDictionary();
 
-        //actualizar en servidor
-        UpdateEventDataServerRpc(objectId, index, title, info);
-        
+            // Actualizar en servidor
+            UpdateEventDataServerRpc(eventInstance.GetComponent<NetworkObject>().NetworkObjectId, index, title, info);
+        }
 
         if (mainCanvas != null)
         {
@@ -223,23 +229,39 @@ public class RealTimeEventSpawner : NetworkBehaviour
 
     [ServerRpc(RequireOwnership = false)]
     void UpdateEventDataServerRpc(ulong objectId, int index, string title, string info)
-    {        
+    {
         // Actualizar el diccionario con los nuevos datos
-        eventInfoDictionary[index] = new EventInfoData { title = title, info = info };
-        Debug.Log(eventInfoDictionary[index].info + "DATOS GUARDADOS EN DICCIONARIO SERVIDOR");
+        if (eventInfoDictionary.ContainsKey(index))
+        {
+            eventInfoDictionary[index] = new EventInfoData { title = title, info = info };
+        }
+        else
+        {
+            eventInfoDictionary.Add(index, new EventInfoData { title = title, info = info });
+        }
+        Debug.Log(eventInfoDictionary[index].info + " DATOS GUARDADOS EN DICCIONARIO SERVIDOR");
+        PrintEventInfoDictionary();
 
-        UpdateEventDataClientRpc(objectId, title, info);
+        UpdateEventDataClientRpc(objectId, title, info, index);
     }
 
     [ClientRpc]
-    void UpdateEventDataClientRpc(ulong objectId, string title, string info)
+    void UpdateEventDataClientRpc(ulong objectId, string title, string info, int index)
     {
-        
-         GameObject eventInstance = NetworkManager.Singleton.SpawnManager.SpawnedObjects[objectId].gameObject;
-        UpdateEventInfoPanel(eventInstance, title, info);
+        Debug.Log("ClientRpc received. Updating event info panel.");
+        if (NetworkManager.Singleton.SpawnManager.SpawnedObjects.TryGetValue(objectId, out var networkObject))
+        {
+            GameObject eventInstance = networkObject.gameObject;
+            Debug.Log("Updating event info panel for event with index: " + index);
+            UpdateEventInfoPanel(eventInstance, title, info);
+        }
+        else
+        {
+            Debug.LogWarning("Event instance not found in UpdateEventDataClientRpc");
+        }
     }
 
-    void UpdateEventInfoPanel(GameObject eventInstance, string title, string info)
+    public void UpdateEventInfoPanel(GameObject eventInstance, string title, string info)
     {
         Transform canvas = eventInstance.transform.Find("EventCanvas");
         if (canvas != null)
@@ -253,12 +275,16 @@ public class RealTimeEventSpawner : NetworkBehaviour
 
                 if (titleText != null)
                 {
-                    titleText.text = title;
+                    titleText.SetText(title);
+                    Debug.Log("TITULODEL PANEL: " +  titleText.text);
+                    titleText.ForceMeshUpdate();
                 }
 
                 if (infoText != null)
                 {
-                    infoText.text = info;
+                    infoText.SetText(info);
+                    Debug.Log("INFO DEL PANEL: " + infoText.text);
+                    infoText.ForceMeshUpdate();
                 }
             }
         }
@@ -405,6 +431,7 @@ public class RealTimeEventSpawner : NetworkBehaviour
     private void PrintEventInfoDictionary()
     {
         Debug.Log("Imprimiendo información del diccionario:");
+        Debug.Log($"Número de objetos en el diccionario: {eventInfoDictionary.Count}");
         foreach (var kvp in eventInfoDictionary)
         {
             int index = kvp.Key;

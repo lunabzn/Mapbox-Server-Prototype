@@ -688,7 +688,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: 
+  m_text: info
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: ce4c9b21d0a1f1046863bf33915a74f3, type: 2}
   m_sharedMaterial: {fileID: 1126055727083326614, guid: ce4c9b21d0a1f1046863bf33915a74f3, type: 2}
@@ -1755,7 +1755,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: 
+  m_text: titulo
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 625fc662e37e33345bf79496e6b27192, type: 2}
   m_sharedMaterial: {fileID: 4496880979414761910, guid: 625fc662e37e33345bf79496e6b27192, type: 2}
