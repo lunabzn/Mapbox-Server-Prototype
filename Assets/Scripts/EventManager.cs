@@ -21,7 +21,7 @@ public class EventManager : MonoBehaviour
     {
         if (eventID == 1) 
         {
-            SceneManager.LoadScene("RelajacionCesped");
+            SceneManager.LoadScene("EventoRelajacionCesped");
         } else if (eventID == 2)
         {
             SceneManager.LoadScene("EventoAulario 1");

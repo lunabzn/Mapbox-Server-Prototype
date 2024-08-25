@@ -29,7 +29,7 @@ public class EventUIManager : MonoBehaviour
 
     public void DoAct()
     {
-        SceneManager.LoadScene("EventoRealizado");
+        SceneManager.LoadScene("FeedbackScene");
     }
 
     public void ScanEvent()

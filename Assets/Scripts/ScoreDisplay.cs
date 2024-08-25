@@ -13,6 +13,7 @@ public class ScoreDisplay : MonoBehaviour
     [SerializeField] public GameObject badge1;
     [SerializeField] public GameObject panelBadge;
     [SerializeField] public GameObject menuPanel;
+    [SerializeField] public bool firstEvent = false;
 
     void Start()
     {
@@ -22,8 +23,9 @@ public class ScoreDisplay : MonoBehaviour
         // Mostrar la puntuación en el texto
         scoreText.text = "                    " + score;
 
-        if (score == 10)
+        if (score == 10 && !firstEvent)
         {
+            firstEvent = true;
             panelBadge.SetActive(true);
             badgeText.text = " Enhorabuena por tu primero evento realizado! ";
         }
