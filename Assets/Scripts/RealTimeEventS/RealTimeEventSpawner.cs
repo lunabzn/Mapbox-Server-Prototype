@@ -6,6 +6,7 @@ using Mapbox.Utils;
 using UnityEngine.UI;
 using TMPro;
 using System;
+using Mapbox.Unity.Map;
 
 public class RealTimeEventSpawner : NetworkBehaviour
 {
@@ -27,7 +28,8 @@ public class RealTimeEventSpawner : NetworkBehaviour
 
     public List<GameObject> spawnedEvents = new List<GameObject>();
     public List<Vector3> eventPositions = new List<Vector3>();
-    public List<Vector2d> geoPositions = new List<Vector2d>();
+    public List<Vector2d> geoPositions = new List<Vector2d>(); 
+    private AbstractMap map; // Referencia al mapa
 
     public static RealTimeEventSpawner Instance { get; private set; }
 
@@ -57,26 +59,44 @@ public class RealTimeEventSpawner : NetworkBehaviour
 
     private void Update()
     {
+           
+        if (map == null) return; // Salir si no hay referencia al mapa
+
         for (int i = spawnedEvents.Count - 1; i >= 0; i--)
         {
-            if (spawnedEvents[i] == null)
+            var eventInstance = spawnedEvents[i];
+
+            if (eventInstance == null)
             {
-                spawnedEvents.RemoveAt(i);
+                spawnedEvents.RemoveAt(i); // Remover si es null
+                continue;
+            }
+
+            // Asegurar que la altura Y sea 5
+            var currentPosition = eventInstance.transform.position;
+            if (currentPosition.y != 5)
+            {
+                eventInstance.transform.position = new Vector3(currentPosition.x, 5, currentPosition.z);
+            }
+
+            // Resetear hasChanged si ha cambiado
+            if (eventInstance.transform.hasChanged)
+            {
+                eventInstance.transform.hasChanged = false;
+            }
+
+            // Asegurarse de que geoPositions tenga suficientes elementos
+            if (i < geoPositions.Count)
+            {
+                // Actualizar la posición del evento
+                UpdateEventPosition(eventInstance, geoPositions[i]);
             }
             else
             {
-                Vector3 currentPosition = spawnedEvents[i].transform.position;
-                if (currentPosition.y != 5)
-                {
-                    spawnedEvents[i].transform.position = new Vector3(currentPosition.x, 5, currentPosition.z);
-                }
-
-                if (spawnedEvents[i].transform.hasChanged)
-                {
-                    spawnedEvents[i].transform.hasChanged = false;
-                }
+                Debug.LogWarning("Index out of range: " + i + ". geoPositions.Count: " + geoPositions.Count);
             }
-        }
+        }        
+
     }
 
     private void OnEnable()
@@ -93,7 +113,8 @@ public class RealTimeEventSpawner : NetworkBehaviour
     {
         if (scene.name == "Location-basedGame")
         {
-            mainCanvas = GameObject.Find("Canvas");
+            mainCanvas = GameObject.Find("Canvas"); 
+            map = FindObjectOfType<AbstractMap>();
             gameObject.SetActive(true);
 
             if (IsServer)
@@ -445,5 +466,18 @@ public class RealTimeEventSpawner : NetworkBehaviour
             EventInfoData eventData = kvp.Value;
             Debug.Log($"Índice: {index}, Título: {eventData.title}, Información: {eventData.info}");
         }
+    }
+
+    //Actualizar a coordenada de mapa al desplazarse
+    void UpdateEventPosition(GameObject eventInstance, Vector2d geoPosition)
+    {
+        // Convierte la posición geográfica a una posición en el mundo utilizando el mapa
+        Vector3 worldPosition = map.GeoToWorldPosition(geoPosition, true);
+
+        // Asegura que la altura (Y) sea constante
+        worldPosition.y = 5;
+
+        // Actualiza la posición del evento en el mundo
+        eventInstance.transform.position = worldPosition;
     }
 }

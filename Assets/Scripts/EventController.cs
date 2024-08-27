@@ -31,8 +31,19 @@ public class EventController : MonoBehaviour
         pinPosition();
     }
 
-    void pinPosition() { transform.position = new Vector3(transform.position.x, 5, transform.position.z); }
-   
+    //void pinPosition() { transform.position = new Vector3(transform.position.x, 5, transform.position.z); }
+    void pinPosition()
+    {
+        // Obtener la referencia al AbstractMap en la escena
+        var map = FindObjectOfType<Mapbox.Unity.Map.AbstractMap>();
+
+        // Convertir la ubicación del evento (coordenadas geográficas) a una posición en el mundo
+        Vector3 worldPosition = map.GeoToWorldPosition(eventLoc);
+
+        // Establecer la posición del pin en la posición calculada en el mundo
+        transform.position = new Vector3(worldPosition.x, 5, worldPosition.z);
+    }
+
 
     public void OnMouseDown()
     {

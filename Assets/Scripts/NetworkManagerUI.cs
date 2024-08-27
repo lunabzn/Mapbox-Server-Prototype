@@ -1,6 +1,7 @@
 using Mapbox.Unity.Location;
 using Mapbox.Utils;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Unity.Netcode;
 using Unity.Netcode.Transports.UTP;
 using Unity.Services.Authentication;
@@ -72,6 +73,9 @@ public class NetworkManagerUI : MonoBehaviour
             });
 
             Debug.Log($"Servidor iniciado con código de unión: {joinCode}");
+
+            // Iniciar el heartbeat para mantener el lobby activo
+            StartLobbyHeartbeat(lobby.Id);
         }
         catch (RelayServiceException e)
         {
@@ -115,6 +119,25 @@ public class NetworkManagerUI : MonoBehaviour
         catch (RelayServiceException e)
         {
             Debug.LogError(e);
+        }
+    }
+
+    private async void StartLobbyHeartbeat(string lobbyId)
+    {
+        while (true)
+        {
+            try
+            {
+                await LobbyService.Instance.SendHeartbeatPingAsync(lobbyId);
+                Debug.Log("Heartbeat enviado para el lobby " + lobbyId);
+            }
+            catch (LobbyServiceException e)
+            {
+                Debug.LogError("Error enviando heartbeat: " + e);
+                break; // Salir del bucle si no se puede enviar el heartbeat
+            }
+
+            await Task.Delay(10000); // Envía un heartbeat cada 10 segundos
         }
     }
 

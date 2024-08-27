@@ -3756,7 +3756,6 @@ MonoBehaviour:
   badge1: {fileID: 1483588348}
   panelBadge: {fileID: 384060665}
   menuPanel: {fileID: 1511888757}
-  firstEvent: 0
 --- !u!1 &1250381810
 GameObject:
   m_ObjectHideFlags: 0
