@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.SocialPlatforms.Impl;
 using UnityEngine.UI;
 
@@ -10,19 +11,33 @@ public class ScoreDisplay : MonoBehaviour
     int score;
     public Text badgeText;
     [SerializeField] public GameObject badge1;
+    [SerializeField] public GameObject badge2;
+    [SerializeField] public GameObject badge3;
     [SerializeField] public GameObject panelBadge;
     [SerializeField] public GameObject menuPanel;
 
-    // Cambiar firstEvent a privado y manejarlo con PlayerPrefs
-    private bool firstEvent;
+    private bool firstEvent = false;
+    private bool threeEvents = false;
+    private bool underTime = false;
+    private bool logroTiempo = false;
+
 
     void Start()
     {
-        // Recuperar la puntuación guardada en PlayerPrefs
+         // Recuperar la puntuación guardada en PlayerPrefs
         score = PlayerPrefs.GetInt("Score", 0);
 
         // Recuperar el estado de firstEvent desde PlayerPrefs
-        firstEvent = PlayerPrefs.GetInt("FirstEvent", 0) == 1;
+        if (PlayerPrefs.GetInt("FirstEvent") == 1) { firstEvent = true; };
+
+        // Recuperar el estado de threeEvents desde PlayerPrefs
+        if (PlayerPrefs.GetInt("ThreeEvents") == 1) { threeEvents = true; };
+
+        // Recuperar el estado de threeEvents desde PlayerPrefs
+        if (PlayerPrefs.GetInt("UnderTime") == 1) { underTime = true; };
+
+        //Guardar estado logro del tiempo
+        if(PlayerPrefs.GetInt("LogroTiempo") == 1) {  logroTiempo = true; };
 
         // Mostrar la puntuación en el texto
         scoreText.text = "                    " + score;
@@ -37,7 +52,26 @@ public class ScoreDisplay : MonoBehaviour
             // Guardar el estado de firstEvent en PlayerPrefs
             PlayerPrefs.SetInt("FirstEvent", 1);
         }
+        else if (score >= 30 && !threeEvents)
+        {
+            threeEvents = true;
+            panelBadge.SetActive(true);
+            badgeText.text = "¡Bien! Llevas ya 3 eventos";
+
+            // Guardar el estado de firstEvent en PlayerPrefs
+            PlayerPrefs.SetInt("ThreeEvents", 1);
+        }
+        else if(underTime && !logroTiempo)
+        {
+            logroTiempo = true;
+            panelBadge.SetActive(true);
+            badgeText.text = "WOW ¡Conseguiste acabar un evento en menos de 10 minutos!";
+
+            //Guardar logro tiempo
+            PlayerPrefs.SetInt("LogroTiempo", 1);
+        }
     }
+
 
     void Update()
     {
@@ -54,6 +88,19 @@ public class ScoreDisplay : MonoBehaviour
         {
             badge1.SetActive(true);
         }
+        if (score >= 30)
+        {
+            badge2.SetActive(true);
+        }
+        if (underTime)
+        {
+            badge3.SetActive(true);
+        }
+    }
+
+    public void volverInstrucciones()
+    {
+        SceneManager.LoadScene("Tutorial");
     }
 
     private void OnApplicationQuit()
@@ -61,5 +108,6 @@ public class ScoreDisplay : MonoBehaviour
         // Resetear la puntuación y el estado de firstEvent cuando la aplicación se cierre
         PlayerPrefs.DeleteKey("Score");
         PlayerPrefs.DeleteKey("FirstEvent");
+        PlayerPrefs.DeleteKey("UnderTime");
     }
 }

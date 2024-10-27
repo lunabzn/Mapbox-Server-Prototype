@@ -30,7 +30,7 @@
 			LocationProviderFactory.Instance.mapManager.OnInitialized += () => _isInitialized = true;
 		}
 
-		void LateUpdate()
+		void FixedUpdate()
 		{
 			if (_isInitialized)
 			{

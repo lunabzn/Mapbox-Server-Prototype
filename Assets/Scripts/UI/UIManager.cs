@@ -1,31 +1,34 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using TMPro;
 
 public class UIManager : MonoBehaviour
 {
-    [SerializeField] public GameObject eventPanel; 
+    [SerializeField] public GameObject eventPanel;
+    [SerializeField] public GameObject completeEventPanel;
     [SerializeField] public GameObject closerPanel;
     [SerializeField] public EventManager eventManager;
     [SerializeField] public GameObject menuPanel;
+    [SerializeField] public TMP_Text textNombre;
+
+    public string eventName;
 
     int auxID;
-    void Start()
-    {
-        
-    }
-
     
-    void Update()
-    {
-        
-    }
 
     public void DisplayPanel(int eventID)
     {
         auxID = eventID;
+        textNombre.text = eventName;
         eventPanel.SetActive(true);
     }
+
+    public void DisplayCompletePanel()
+    {
+        completeEventPanel.SetActive(true);
+    }
+
     public void GetCloserPanel()
     {
         closerPanel.SetActive(true);

@@ -12,7 +12,7 @@ EditorBuildSettings:
     path: Assets/Scenes/Tutorial.unity
     guid: 798c3bcade6c7904fa86890b8cb60d9e
   - enabled: 1
-    path: Assets/Scenes/EventoRelajacionCesped.unity
+    path: Assets/Scenes/EventoCharla.unity
     guid: 010826be421013d4dbee11b92ad81b4a
   - enabled: 1
     path: Assets/Scenes/EventoAulario 1.unity
@@ -39,6 +39,12 @@ EditorBuildSettings:
     path: Assets/Scenes/Location-basedGame.unity
     guid: 42f6aa7ce7a604f16ade319663f46ceb
   - enabled: 1
+    path: Assets/Scenes/EspacioSeguro.unity
+    guid: fac1f028312c4224a82ffc48d87e3c18
+  - enabled: 1
     path: Assets/Scenes/SampleScene.unity
     guid: c850ee8c3b14cc8459e7e186857cf567
+  - enabled: 1
+    path: Assets/Scenes/EspacioSeguroBoton.unity
+    guid: 86b3f12f97e1e3c48bb54965c0d53511
   m_configObjects: {}

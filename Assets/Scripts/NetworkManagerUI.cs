@@ -13,8 +13,10 @@ using UnityEngine;
 
 public class NetworkManagerUI : MonoBehaviour
 {
-    [SerializeField] private GameObject playerPrefab;
+    [SerializeField] private GameObject playerPrefab; // Prefab amarillo por defecto
+    [SerializeField] private GameObject localPlayerPrefab; // Prefab local
     public GameObject alert;
+    
     public static NetworkManagerUI Instance { get; private set; }
 
     private void Awake()
@@ -28,8 +30,10 @@ public class NetworkManagerUI : MonoBehaviour
         Instance = this;
         DontDestroyOnLoad(gameObject);
 
-        InitializeUnityServices();
+        InitializeUnityServices();       
     }
+
+
 
     private async void InitializeUnityServices()
     {
@@ -49,6 +53,7 @@ public class NetworkManagerUI : MonoBehaviour
 
     private async void CreateRelayAndStartServer()
     {
+
         try
         {
             var allocation = await RelayService.Instance.CreateAllocationAsync(20);
@@ -122,6 +127,7 @@ public class NetworkManagerUI : MonoBehaviour
         }
     }
 
+    //manda ticks cada 10 segundos para mantener activo el servidor
     private async void StartLobbyHeartbeat(string lobbyId)
     {
         while (true)
@@ -151,7 +157,8 @@ public class NetworkManagerUI : MonoBehaviour
             Vector2d latLon = LocationProviderFactory.Instance.DefaultLocationProvider.CurrentLocation.LatitudeLongitude;
             Vector3 spawnPosition = LocationProviderFactory.Instance.mapManager.GeoToWorldPosition(latLon);
 
-            // Instanciar jugador para el cliente conectado
+            Debug.Log("Spawn Position: " + spawnPosition);
+
             var playerInstance = Instantiate(playerPrefab, spawnPosition, Quaternion.identity);
             playerInstance.GetComponent<NetworkObject>().SpawnAsPlayerObject(clientId);
         }
@@ -163,5 +170,6 @@ public class NetworkManagerUI : MonoBehaviour
         {
             NetworkManager.Singleton.Shutdown();
         }
+        PlayerPrefs.DeleteAll();
     }
 }

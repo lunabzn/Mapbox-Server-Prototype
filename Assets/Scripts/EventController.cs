@@ -53,10 +53,23 @@ public class EventController : MonoBehaviour
         var distance = currentPlayerLoc.GetDistanceTo(currentEventLoc);
         Debug.Log(distance);
 
+        // Verificar si el evento ya está completado usando PlayerPrefs
+        bool isEventCompleted = PlayerPrefs.GetInt("EventCompleted_" + (eventID - 1), 0) == 1;
+
+        if (isEventCompleted)
+        {
+            // Si el evento ya está completado, mostrar el panel indicando que ya está hecho
+            uiManager.DisplayCompletePanel();
+            return;
+        }
 
         if (!isRealTime)
-        {       
-            if (distance < eventManager.maxDist) { uiManager.DisplayPanel(eventID); }
+        {           
+            if (distance < eventManager.maxDist) 
+            {
+                uiManager.eventName = eventManager.eventName(eventID);
+                uiManager.DisplayPanel(eventID); 
+            }
             if (distance > eventManager.maxDist) { uiManager.GetCloserPanel(); }
         } 
         else if(isRealTime)
@@ -75,7 +88,7 @@ public class EventController : MonoBehaviour
                     if (index >= 0 && RealTimeEventSpawner.Instance.eventInfoDictionary.TryGetValue(index, out var eventData))
                     {
                         // Actualizar el panel de información con los datos
-                        RealTimeEventSpawner.Instance.UpdateEventInfoPanel(gameObject, eventData.title, eventData.info);
+                        RealTimeEventSpawner.Instance.UpdateEventInfoPanel(gameObject, eventData.title, eventData.info, eventData.date, eventData.time);
                     }
                 }
             }

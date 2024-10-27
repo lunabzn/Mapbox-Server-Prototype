@@ -6,6 +6,7 @@ using ZXing;
 using TMPro;
 using System.Runtime.CompilerServices;
 using UnityEngine.Android;
+using UnityEngine.SceneManagement;
 
 public class QRCodeScanner : MonoBehaviour
 {
@@ -51,9 +52,12 @@ public class QRCodeScanner : MonoBehaviour
             }
         }
 
-        cameraTexture.Play();
-        background.texture = cameraTexture;
-        isCamAvailable = true;
+        if(cameraTexture!=null)
+        {
+            cameraTexture.Play();
+            background.texture = cameraTexture;
+            isCamAvailable = true;
+        }
 
     }
 
@@ -81,6 +85,9 @@ public class QRCodeScanner : MonoBehaviour
             if(result != null )
             {
                 outputText.text = result.Text;
+                
+                // Si el escaneo es correcto, notificar al SceneController
+                OnQRCodeScannedSuccessfully();
             }
             else
             {
@@ -93,5 +100,35 @@ public class QRCodeScanner : MonoBehaviour
         }
     }
 
-    
+    private void OnQRCodeScannedSuccessfully()
+    {      
+        Debug.LogError("OnQRCodeScannedSuccessfully ejecutado correctamente");
+
+        // Obtener el ID del evento actual desde el SceneController
+        int eventID = SceneController.Instance.GetEventID(SceneController.Instance.currentActivityName);
+
+        if (eventID != -1)
+        {
+            // Marcar el evento como completado en el SceneController
+            SceneController.Instance.MarkEventAsCompleted(eventID);
+
+            Debug.Log("Evento " + eventID + " completado.");
+        }
+
+        GameObject canvas = GameObject.Find("Canvas");
+        if (canvas != null)
+        {
+            ScoreManager scoreManager = canvas.GetComponent<ScoreManager>();
+            if (scoreManager != null)
+            {
+                // Llamar al método AddFullScore de ScoreManager
+                scoreManager.AddFullScore();
+            }
+        }
+
+        // Cargar la escena de feedback (o la escena que prefieras después del escaneo)
+        SceneController.Instance.LoadScene("Location-basedGame");
+    }
+
+
 }
